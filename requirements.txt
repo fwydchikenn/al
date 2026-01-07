@@ -5,3 +5,5 @@ requests
 numpy
 pillow
 ffmpeg-python
+pydub
+audioop-lts
