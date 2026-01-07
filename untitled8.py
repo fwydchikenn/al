@@ -3,7 +3,6 @@ import pickle
 import whisper
 from rapidfuzz import fuzz, process
 import os
-import re
 
 st.set_page_config(
     page_title="Identifikasi Ayat Quran",
@@ -16,43 +15,31 @@ st.title("📖 Identifikasi Ayat Al-Qur’an dari Audio")
 DATA_PATH = "stream.pkl"
 
 @st.cache_data
-def load_data_pickle():
+def load_pickle():
     if not os.path.exists(DATA_PATH):
-        st.error("File stream.pkl tidak ditemukan")
+        st.error("File pickle stream.pkl tidak ditemukan")
         return {}
 
-    data = pickle.load(open(DATA_PATH, 'rb'))
-    return data
+    return pickle.load(open(DATA_PATH,'rb'))
 
-data_pickle = load_data_pickle()
+data_pickle = load_pickle()
 
-# Seluruh key pickle = teksIndonesia
+# key pickle kamu = teksIndonesia
 verses = list(data_pickle.keys())
 
 @st.cache_resource
-def load_whisper_model():
+def load_whisper():
     return whisper.load_model("base")
 
-model = load_whisper_model()
-
-def parse_audio_url(url):
-    try:
-        match = re.search(r'/audio-partial/.+/(\d{3})(\d{3})\.mp3', url)
-        if match:
-            surah = int(match.group(1))
-            ayat = int(match.group(2))
-            return surah, ayat
-    except:
-        pass
-    return None, None
+model = load_whisper()
 
 def transcribe_audio(audio_file):
-    if not os.path.exists(audio_file):
-        st.error("File audio tidak ditemukan")
+    try:
+        result = model.transcribe(audio_file, language="id")
+        return result["text"]
+    except Exception as e:
+        st.error("Terjadi error saat proses Whisper transcribe")
         return None
-
-    result = model.transcribe(audio_file, language="id")
-    return result["text"]
 
 def identify_verse(teks):
     if not teks or not verses:
@@ -71,12 +58,9 @@ def identify_verse(teks):
 
         if ayat:
             url_audio = ayat["audio"]["01"]
-            surah, nomorAyat = parse_audio_url(url_audio)
 
             return {
                 "score": score,
-                "surahDetected": surah,
-                "surat": ayat.get("teksLatin", "").split()[0],
                 "nomorAyat": ayat["nomorAyat"],
                 "arab": ayat["teksArab"],
                 "terjemahan": ayat["teksIndonesia"],
@@ -100,10 +84,13 @@ if option == "Upload Audio":
     )
 
     if uploaded:
-        audio_file = uploaded.name
+        # Simpan dengan nama tetap
+        audio_file = "input_audio_user.wav"
 
         with open(audio_file, "wb") as f:
             f.write(uploaded.getbuffer())
+
+        audio_file = os.path.abspath(audio_file)
 
         st.audio(audio_file)
 
@@ -111,10 +98,12 @@ else:
     audio = st.audio_input("🎤 Rekam Audio Ayat")
 
     if audio:
-        audio_file = "rekaman.wav"
+        audio_file = "input_audio_user.wav"
 
         with open(audio_file, "wb") as f:
             f.write(audio.getbuffer())
+
+        audio_file = os.path.abspath(audio_file)
 
         st.audio(audio_file)
 
@@ -140,7 +129,7 @@ if st.button("Identifikasi Ayat"):
                     st.subheader("Detail Ayat")
 
                     st.write(f"**Nomor Ayat:** {hasil['nomorAyat']}")
-                    st.write(f"**Tingkat Kemiripan:** {hasil['score']}%")
+                    st.write(f"**Kemiripan:** {hasil['score']}%")
 
                     st.subheader("Teks Arab:")
                     st.write(hasil["arab"])
@@ -148,15 +137,16 @@ if st.button("Identifikasi Ayat"):
                     st.subheader("Terjemahan Indonesia:")
                     st.write(hasil["terjemahan"])
 
-                    st.subheader("Audio Ayat (Asli dari API):")
+                    st.subheader("Audio Ayat Asli:")
                     st.audio(hasil["audio"])
 
                 else:
                     st.error("Ayat tidak dapat dikenali")
 
 
-if audio_file and audio_file != "rekaman.wav":
+# Penghapusan file dilakukan SETELAH selesai saja
+if audio_file:
     try:
-        os.remove(audio_file)
+        os.remove("input_audio_user.wav")
     except:
         pass
