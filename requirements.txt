@@ -2,8 +2,6 @@ streamlit
 openai-whisper
 rapidfuzz
 requests
-pydub
+ffmpeg-python
 numpy
 pillow
-ffmpeg-python
-audioop-lts
