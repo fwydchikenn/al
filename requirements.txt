@@ -1,0 +1,8 @@
+openai-whisper
+rapidfuzz
+requests
+pydub
+streamlit-audiorecorder
+pillow
+numpy
+ffmpeg-python
