@@ -6,3 +6,4 @@ pydub
 ffmpeg-python
 numpy
 pillow
+audioop-lts
