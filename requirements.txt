@@ -3,9 +3,6 @@ openai-whisper
 rapidfuzz
 requests
 pydub
-pyaudioop
-ffmpeg-python
 numpy
 pillow
-streamlit-audiorecorder
-
+ffmpeg-python
