@@ -3,7 +3,7 @@ openai-whisper
 rapidfuzz
 requests
 pydub
-audioop-lts
 numpy
 pillow
 ffmpeg-python
+audioop-lts
