@@ -1,8 +1,11 @@
+streamlit
 openai-whisper
 rapidfuzz
 requests
 pydub
-streamlit-audiorecorder
-pillow
-numpy
+pyaudioop
 ffmpeg-python
+numpy
+pillow
+streamlit-audiorecorder
+
