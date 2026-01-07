@@ -41,12 +41,13 @@ def simpan_audio_bytes(audio_bytes, suffix):
     return temp.name
 
 def transcribe_audio(audio_path):
-    if not os.path.isfile(audio_path):
+    if not os.path.exists(audio_path):
         return None
 
     try:
-        result = model.transcribe(audio_path)
-        teks = result.get("text", "").strip()
+        # panggil whisper dengan parameter device eksplisit
+        result = model.transcribe(audio_path, fp16=False)
+        teks = result.get("text","").strip()
 
         if teks == "":
             return None
@@ -54,6 +55,7 @@ def transcribe_audio(audio_path):
         return teks
     except Exception:
         return None
+
 
 def identify_verse(teks):
     if not teks or not verses:
