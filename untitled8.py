@@ -16,22 +16,23 @@ st.title("📖 Identifikasi Ayat Al-Qur’an dari Audio")
 DATA_PATH = "stream.pkl"
 
 @st.cache_data
-def load_pickle():
+def load_data_pickle():
     if not os.path.exists(DATA_PATH):
-        st.error("Database stream.pkl tidak ditemukan")
+        st.error("File database stream.pkl tidak ditemukan")
         return {}
 
-    return pickle.load(open(DATA_PATH,'rb'))
+    data = pickle.load(open(DATA_PATH, 'rb'))
+    return data
 
-data_pickle = load_pickle()
+data_pickle = load_data_pickle()
 
 verses = list(data_pickle.keys())
 
 @st.cache_resource
-def load_whisper():
+def load_whisper_model():
     return whisper.load_model("base")
 
-model = load_whisper()
+model = load_whisper_model()
 
 def simpan_audio_bytes(audio_bytes, suffix):
     temp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
@@ -40,14 +41,22 @@ def simpan_audio_bytes(audio_bytes, suffix):
     return temp.name
 
 def transcribe_audio(audio_path):
+    if not os.path.isfile(audio_path):
+        return None
+
     try:
         result = model.transcribe(audio_path)
-        return result["text"]
-    except:
+        teks = result.get("text", "").strip()
+
+        if teks == "":
+            return None
+
+        return teks
+    except Exception:
         return None
 
 def identify_verse(teks):
-    if not teks:
+    if not teks or not verses:
         return None
 
     match = process.extractOne(
@@ -64,10 +73,11 @@ def identify_verse(teks):
         if ayat:
             return {
                 "score": score,
+                "surat": ayat["namaLatin"],
                 "nomorAyat": ayat["nomorAyat"],
                 "arab": ayat["teksArab"],
                 "terjemahan": ayat["teksIndonesia"],
-                "audio": ayat["audio"]["01"]
+                "audioUrl": ayat["audio"]["01"]
             }
 
     return None
@@ -83,11 +93,14 @@ audio_file = None
 if option == "Upload Audio":
     uploaded = st.file_uploader(
         "Upload audio ayat:",
-        type=["mp3","wav","ogg","m4a"]
+        type=["mp3", "wav", "ogg", "m4a"]
     )
 
     if uploaded:
-        audio_file = simpan_audio_bytes(uploaded.getbuffer(), os.path.splitext(uploaded.name)[1])
+        ext = os.path.splitext(uploaded.name)[1]
+        audio_file = simpan_audio_bytes(uploaded.getbuffer(), ext)
+        audio_file = os.path.abspath(audio_file)
+
         st.audio(audio_file)
 
 else:
@@ -95,6 +108,8 @@ else:
 
     if audio:
         audio_file = simpan_audio_bytes(audio.getbuffer(), ".ogg")
+        audio_file = os.path.abspath(audio_file)
+
         st.audio(audio_file)
 
 
@@ -118,8 +133,9 @@ if st.button("Identifikasi Ayat"):
 
                     st.subheader("Detail Ayat")
 
-                    st.write(f"Nomor Ayat: {hasil['nomorAyat']}")
-                    st.write(f"Tingkat Kemiripan: {hasil['score']}%")
+                    st.write(f"**Surat:** {hasil['surat']}")
+                    st.write(f"**Nomor Ayat:** {hasil['nomorAyat']}")
+                    st.write(f"**Kemiripan:** {hasil['score']}%")
 
                     st.subheader("Teks Arab:")
                     st.write(hasil["arab"])
@@ -128,7 +144,7 @@ if st.button("Identifikasi Ayat"):
                     st.write(hasil["terjemahan"])
 
                     st.subheader("Audio Ayat Asli:")
-                    st.audio(hasil["audio"])
+                    st.audio(hasil["audioUrl"])
 
                 else:
                     st.error("Ayat tidak dapat dikenali")
@@ -137,5 +153,5 @@ if st.button("Identifikasi Ayat"):
 if audio_file:
     try:
         os.remove(audio_file)
-    except:
+    except Exception:
         pass
